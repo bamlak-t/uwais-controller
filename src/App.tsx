@@ -1,24 +1,26 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { HidProvider } from './bluetooth/HidProvider';
+import { LayoutsProvider } from './layouts/LayoutsProvider';
+import { RootNavigator } from './navigation/RootNavigator';
+import { SettingsProvider } from './settings/SettingsProvider';
+import { ThemeProvider } from './themes/ThemeProvider';
 
 function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Uwais Controller</Text>
-    </View>
+    <SafeAreaProvider>
+      <StatusBar hidden />
+      <SettingsProvider>
+        <ThemeProvider>
+          <LayoutsProvider>
+            <HidProvider>
+              <RootNavigator />
+            </HidProvider>
+          </LayoutsProvider>
+        </ThemeProvider>
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0b0d12',
-  },
-  title: {
-    color: '#ffffff',
-    fontSize: 24,
-  },
-});
 
 export default App;
