@@ -75,7 +75,11 @@ export function resolveState(
     gamepad.buttons |= 1 << GAMEPAD_BUTTON_BITS[button];
   };
 
-  const applyDirectional = (output: DirectionalOutput, x: number, y: number) => {
+  const applyDirectional = (
+    output: DirectionalOutput,
+    x: number,
+    y: number,
+  ) => {
     if (output === 'leftStick' || output === 'rightStick') {
       const [ax, ay]: ['lx', 'ly'] | ['rx', 'ry'] =
         output === 'leftStick' ? ['lx', 'ly'] : ['rx', 'ry'];
@@ -157,7 +161,8 @@ export function applyDeadzone(
   if (magnitude <= deadzone || magnitude === 0) {
     return [0, 0];
   }
-  const scale = Math.min(1, (magnitude - deadzone) / (1 - deadzone)) / magnitude;
+  const scale =
+    Math.min(1, (magnitude - deadzone) / (1 - deadzone)) / magnitude;
   return [x * scale, y * scale];
 }
 

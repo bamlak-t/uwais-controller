@@ -36,19 +36,24 @@ describe.each(PRESET_LAYOUTS)('$name preset', layout => {
     }
   });
 
-  it.each(SCREENS)('has no overlapping controls on $width x $height', screen => {
-    const rects = layout.controls.map(control => controlRect(control, screen));
-    const collisions: string[] = [];
+  it.each(SCREENS)(
+    'has no overlapping controls on $width x $height',
+    screen => {
+      const rects = layout.controls.map(control =>
+        controlRect(control, screen),
+      );
+      const collisions: string[] = [];
 
-    layout.controls.forEach((a, i) => {
-      layout.controls.slice(i + 1).forEach((b, offset) => {
-        if (overlaps(a, rects[i], b, rects[i + 1 + offset])) {
-          collisions.push(`${a.id} / ${b.id}`);
-        }
+      layout.controls.forEach((a, i) => {
+        layout.controls.slice(i + 1).forEach((b, offset) => {
+          if (overlaps(a, rects[i], b, rects[i + 1 + offset])) {
+            collisions.push(`${a.id} / ${b.id}`);
+          }
+        });
       });
-    });
-    expect(collisions).toEqual([]);
-  });
+      expect(collisions).toEqual([]);
+    },
+  );
 
   it('leaves the top centre free for the menu button', () => {
     const screen = SCREENS[0];

@@ -33,7 +33,10 @@ export function resolveTheme(selection: ThemeSelection): Theme {
     colors.controlLabel = ensureReadable(colors.controlLabel, colors.control);
   } else {
     // Outline and glass controls are drawn straight onto the background.
-    colors.controlLabel = ensureReadable(colors.controlLabel, colors.background);
+    colors.controlLabel = ensureReadable(
+      colors.controlLabel,
+      colors.background,
+    );
   }
 
   return {
@@ -48,7 +51,10 @@ export function resolveTheme(selection: ThemeSelection): Theme {
 }
 
 /** Rebuilds the app chrome around a new background colour. */
-function rebaseOnBackground(colors: ThemeColors, background: string): ThemeColors {
+function rebaseOnBackground(
+  colors: ThemeColors,
+  background: string,
+): ThemeColors {
   const ink = contrastOn(background);
   const next: ThemeColors = {
     ...colors,

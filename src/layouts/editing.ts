@@ -59,10 +59,17 @@ export function moveControl(
   controlId: string,
   position: ControlPosition,
 ): Layout {
-  return patchControl(layout, controlId, control => ({ ...control, ...position }));
+  return patchControl(layout, controlId, control => ({
+    ...control,
+    ...position,
+  }));
 }
 
-export function resizeControl(layout: Layout, controlId: string, delta: number): Layout {
+export function resizeControl(
+  layout: Layout,
+  controlId: string,
+  delta: number,
+): Layout {
   return patchControl(layout, controlId, control => ({
     ...control,
     size: clamp(control.size + delta, MIN_CONTROL_SIZE, MAX_CONTROL_SIZE),
@@ -70,10 +77,17 @@ export function resizeControl(layout: Layout, controlId: string, delta: number):
 }
 
 /** Changes the width-to-height ratio of controls that are not round. */
-export function stretchControl(layout: Layout, controlId: string, delta: number): Layout {
+export function stretchControl(
+  layout: Layout,
+  controlId: string,
+  delta: number,
+): Layout {
   return patchControl(layout, controlId, control =>
     'aspect' in control
-      ? { ...control, aspect: clamp(control.aspect + delta, MIN_ASPECT, MAX_ASPECT) }
+      ? {
+          ...control,
+          aspect: clamp(control.aspect + delta, MIN_ASPECT, MAX_ASPECT),
+        }
       : control,
   );
 }

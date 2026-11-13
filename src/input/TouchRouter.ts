@@ -100,7 +100,10 @@ export class TouchRouter {
     if (control.kind === 'touchpad') {
       const gesture = this.gestures.get(control.id);
       if (gesture) {
-        gesture.maxFingers = Math.max(gesture.maxFingers, this.holders(control.id));
+        gesture.maxFingers = Math.max(
+          gesture.maxFingers,
+          this.holders(control.id),
+        );
       } else {
         this.gestures.set(control.id, {
           startedAt: time,
@@ -218,13 +221,21 @@ export class TouchRouter {
         break;
       }
       case 'dpad': {
-        const [dx, dy] = dpadDirection(x - rect.cx, y - rect.cy, rect.width / 2);
+        const [dx, dy] = dpadDirection(
+          x - rect.cx,
+          y - rect.cy,
+          rect.width / 2,
+        );
         this.set(control.id, { pressed: true, x: dx, y: dy, value: 0 });
         break;
       }
       case 'trigger': {
         const fromBottom = (rect.cy + rect.height / 2 - y) / rect.height;
-        const value = clamp(fromBottom / (1 - TRIGGER_FULL_ZONE), TRIGGER_MIN, 1);
+        const value = clamp(
+          fromBottom / (1 - TRIGGER_FULL_ZONE),
+          TRIGGER_MIN,
+          1,
+        );
         this.set(control.id, { pressed: true, x: 0, y: 0, value });
         break;
       }
@@ -232,7 +243,12 @@ export class TouchRouter {
   }
 
   /** Lets a finger slide from one button onto a neighbouring button. */
-  private rollOver(touch: ActiveTouch, from: Control, x: number, y: number): void {
+  private rollOver(
+    touch: ActiveTouch,
+    from: Control,
+    x: number,
+    y: number,
+  ): void {
     const target = this.pick(x, y, control => control.kind === 'button');
     if (!target || target.id === from.id) {
       return;
@@ -305,7 +321,11 @@ export class TouchRouter {
 }
 
 /** Snaps an offset from a d-pad's centre to one of eight directions. */
-function dpadDirection(dx: number, dy: number, radius: number): [number, number] {
+function dpadDirection(
+  dx: number,
+  dy: number,
+  radius: number,
+): [number, number] {
   if (Math.hypot(dx, dy) < radius * DPAD_DEAD_CENTRE) {
     return [0, 0];
   }

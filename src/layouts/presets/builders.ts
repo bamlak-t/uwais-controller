@@ -25,7 +25,12 @@ interface ButtonLook {
   aspect?: number;
 }
 
-const place = (anchor: Anchor, x: number, y: number, size: number): Placement => ({
+const place = (
+  anchor: Anchor,
+  x: number,
+  y: number,
+  size: number,
+): Placement => ({
   anchor,
   x,
   y,

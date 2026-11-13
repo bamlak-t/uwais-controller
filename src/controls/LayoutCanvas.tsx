@@ -3,10 +3,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Rect, Size, controlRect } from '../input/geometry';
 import { Control } from '../layouts/types';
 import { Theme } from '../themes/types';
-import {
-  ActivityRegistry,
-  IDLE_ANIMATED_ACTIVITY,
-} from './animatedActivity';
+import { ActivityRegistry, IDLE_ANIMATED_ACTIVITY } from './animatedActivity';
 import { ControlView } from './ControlView';
 
 interface Props {
@@ -28,15 +25,10 @@ export function frameStyle(rect: Rect): ViewStyle {
   };
 }
 
-/** Draws every control of a layout. Purely visual: it never handles touches. */
-export const LayoutCanvas = memo(function LayoutCanvas({
-  controls,
-  size,
-  theme,
-  activities,
-}: Props) {
+function LayoutCanvasBase({ controls, size, theme, activities }: Props) {
   const frames = useMemo(
-    () => controls.map(control => ({ control, rect: controlRect(control, size) })),
+    () =>
+      controls.map(control => ({ control, rect: controlRect(control, size) })),
     [controls, size],
   );
 
@@ -57,4 +49,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
       ))}
     </View>
   );
-});
+}
+
+/** Draws every control of a layout. Purely visual: it never handles touches. */
+export const LayoutCanvas = memo(LayoutCanvasBase);

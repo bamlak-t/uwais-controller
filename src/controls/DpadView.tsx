@@ -8,6 +8,9 @@ const ARM_WIDTH = 0.36;
 /** Gap between each arm and the centre, relative to the whole d-pad. */
 const ARM_GAP = 0.02;
 
+/** Diameter of the centre hub relative to the arm thickness. */
+const HUB_SIZE = 0.6;
+
 type Direction = 'up' | 'down' | 'left' | 'right';
 
 const ARROW_ROTATION: Record<Direction, string> = {
@@ -18,7 +21,11 @@ const ARROW_ROTATION: Record<Direction, string> = {
 };
 
 /** A segmented d-pad: four arms that light up individually. */
-export function DpadView({ rect, theme, activity }: ControlViewProps<DpadControl>) {
+export function DpadView({
+  rect,
+  theme,
+  activity,
+}: ControlViewProps<DpadControl>) {
   const look = controlAppearance(theme, rect.height);
   const size = rect.width;
   const arm = size * ARM_WIDTH;
@@ -33,7 +40,11 @@ export function DpadView({ rect, theme, activity }: ControlViewProps<DpadControl
       extrapolate: 'clamp',
     });
 
-  const arms: { direction: Direction; frame: ViewStyle; lit: Animated.AnimatedNode }[] = [
+  const arms: {
+    direction: Direction;
+    frame: ViewStyle;
+    lit: Animated.AnimatedNode;
+  }[] = [
     {
       direction: 'up',
       frame: { left: inset, top: 0, width: arm, height: length },
@@ -84,14 +95,18 @@ export function DpadView({ rect, theme, activity }: ControlViewProps<DpadControl
               },
             ]}
           >
-            <Arrow direction={direction} size={arm * 0.2} color={look.pressedInk} />
+            <Arrow
+              direction={direction}
+              size={arm * 0.2}
+              color={look.pressedInk}
+            />
           </Animated.View>
         </View>
       ))}
       <View
         style={[
           styles.hub,
-          hubFrame(size, arm * 0.3),
+          hubFrame(size, arm * HUB_SIZE),
           { backgroundColor: hubColor(look) },
         ]}
       />
@@ -128,7 +143,13 @@ function Arrow({
 
 function hubFrame(size: number, hub: number): ViewStyle {
   const offset = (size - hub) / 2;
-  return { left: offset, top: offset, width: hub, height: hub, borderRadius: hub / 2 };
+  return {
+    left: offset,
+    top: offset,
+    width: hub,
+    height: hub,
+    borderRadius: hub / 2,
+  };
 }
 
 function hubColor(look: Appearance): string {

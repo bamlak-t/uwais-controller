@@ -25,7 +25,10 @@ export function controlAppearance(
   const ink = tint ?? colors.controlLabel;
   const pressedFill = tint ?? colors.accent;
   const stroke = Math.min(2, Math.max(0.75, height * 0.025));
-  const pressed = { pressedFill, pressedInk: contrastOn(pressedFill) };
+  const pressed = {
+    pressedFill,
+    pressedInk: tint ? contrastOn(tint) : colors.onAccent,
+  };
 
   switch (theme.controlStyle) {
     case 'filled':
@@ -56,7 +59,11 @@ export function controlAppearance(
 }
 
 /** Largest font size that keeps a label inside its control. */
-export function labelFontSize(label: string, width: number, height: number): number {
+export function labelFontSize(
+  label: string,
+  width: number,
+  height: number,
+): number {
   if (label.length <= 1) {
     return height * 0.46;
   }

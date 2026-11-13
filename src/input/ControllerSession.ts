@@ -54,7 +54,8 @@ export class ControllerSession {
       { mouseSensitivity: options.mouseSensitivity },
       {
         onMouseMove: (dx, dy) => this.moveMouse(dx, dy),
-        onScroll: steps => this.dispatcher.moveMouse({ dx: 0, dy: 0, wheel: steps }),
+        onScroll: steps =>
+          this.dispatcher.moveMouse({ dx: 0, dy: 0, wheel: steps }),
         onClick: button => this.click(button),
       },
       (control, activity, previous) =>

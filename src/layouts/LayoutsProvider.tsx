@@ -56,7 +56,9 @@ export function LayoutsProvider({ children }: { children: ReactNode }) {
         return {
           ...previous,
           custom: exists
-            ? previous.custom.map(item => (item.id === layout.id ? layout : item))
+            ? previous.custom.map(item =>
+                item.id === layout.id ? layout : item,
+              )
             : [...previous.custom, layout],
         };
       }),

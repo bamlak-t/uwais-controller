@@ -56,10 +56,13 @@ describe('resolveState', () => {
   });
 
   it('routes sticks to their axes', () => {
-    const state = resolve([stick('leftStick', at), stick('rightStick', right(0.5, 0.5, 0.2))], {
-      'stick-leftStick': { ...pressed, x: 0.6, y: -0.8 },
-      'stick-rightStick': { ...pressed, x: -0.25, y: 0 },
-    });
+    const state = resolve(
+      [stick('leftStick', at), stick('rightStick', right(0.5, 0.5, 0.2))],
+      {
+        'stick-leftStick': { ...pressed, x: 0.6, y: -0.8 },
+        'stick-rightStick': { ...pressed, x: -0.25, y: 0 },
+      },
+    );
     expect(state.gamepad.lx).toBeCloseTo(0.6);
     expect(state.gamepad.ly).toBeCloseTo(-0.8);
     expect(state.gamepad.rx).toBeCloseTo(-0.25);
@@ -74,7 +77,11 @@ describe('resolveState', () => {
   });
 
   it('combines leverless direction buttons with SOCD cleaning', () => {
-    const controls = [pad('dpadLeft', at), pad('dpadRight', at), pad('dpadUp', at)];
+    const controls = [
+      pad('dpadLeft', at),
+      pad('dpadRight', at),
+      pad('dpadUp', at),
+    ];
     const state = resolve(controls, {
       dpadLeft: pressed,
       dpadRight: pressed,

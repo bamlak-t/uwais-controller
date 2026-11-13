@@ -70,7 +70,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   if (!loaded) {
     return null;
   }
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme(): ThemeContextValue {

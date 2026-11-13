@@ -15,7 +15,10 @@ const SHARED_LABELS: Partial<Record<GamepadButton, string>> = {
   dpadRight: '→',
 };
 
-const GAMEPAD_LABELS: Record<GlyphStyle, Partial<Record<GamepadButton, string>>> = {
+const GAMEPAD_LABELS: Record<
+  GlyphStyle,
+  Partial<Record<GamepadButton, string>>
+> = {
   xbox: {
     south: 'A',
     east: 'B',
@@ -90,12 +93,18 @@ const MOUSE_LABELS: Record<MouseButton, string> = {
   middle: 'MMB',
 };
 
-export function gamepadButtonLabel(button: GamepadButton, glyphs: GlyphStyle): string {
+export function gamepadButtonLabel(
+  button: GamepadButton,
+  glyphs: GlyphStyle,
+): string {
   return GAMEPAD_LABELS[glyphs][button] ?? SHARED_LABELS[button] ?? '?';
 }
 
 /** The text drawn on a button for whatever it is bound to. */
-export function bindingLabel(binding: ButtonBinding, glyphs: GlyphStyle): string {
+export function bindingLabel(
+  binding: ButtonBinding,
+  glyphs: GlyphStyle,
+): string {
   switch (binding.type) {
     case 'gamepad':
       return gamepadButtonLabel(binding.button, glyphs);

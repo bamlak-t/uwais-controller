@@ -6,11 +6,7 @@ import { TouchpadView } from './TouchpadView';
 import { TriggerView } from './TriggerView';
 import { ControlViewProps } from './types';
 
-/** Draws any control with the renderer for its kind. */
-export const ControlView = memo(function ControlView({
-  control,
-  ...rest
-}: ControlViewProps) {
+function ControlViewBase({ control, ...rest }: ControlViewProps) {
   switch (control.kind) {
     case 'button':
       return <ButtonView control={control} {...rest} />;
@@ -23,4 +19,7 @@ export const ControlView = memo(function ControlView({
     case 'touchpad':
       return <TouchpadView control={control} {...rest} />;
   }
-});
+}
+
+/** Draws any control with the renderer for its kind. */
+export const ControlView = memo(ControlViewBase);
