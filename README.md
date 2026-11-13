@@ -1,97 +1,79 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Uwais Controller
 
-# Getting Started
+Turns an Android phone into a Bluetooth gamepad, keyboard and mouse for PCs,
+Steam Deck, Android TV and anything else that accepts standard Bluetooth input
+devices. No software is needed on the host.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Requirements
 
-## Step 1: Start Metro
+- An Android 9+ phone whose Bluetooth stack supports the HID device profile
+  (most do; the app tells you if yours does not).
+- Node 22+, JDK 17 and the Android SDK to build.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+Game consoles only accept their own controllers and will not connect.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+## Running
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm install
+npm run android   # with the phone plugged in and USB debugging on
 ```
 
-### iOS
+Emulators have no real Bluetooth. Turn on **Settings → Demo mode** to use the
+app without a host.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Pairing
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+1. Tap **Pair new device** on the home screen to make the phone visible.
+2. On the computer, add a Bluetooth device and pick the phone.
+3. Accept the request on both sides. The host now sees a gamepad, keyboard and
+   mouse.
+4. Next time, tap the host under **Paired devices**.
+
+If the phone was paired with the computer before the app was installed, remove
+it on the computer and pair again so the host learns about the controller.
+
+The phone appears as a generic gamepad. Games that only accept Xbox controllers
+need Steam Input or a similar remapper.
+
+## Features
+
+- **Layouts**: offset sticks (Xbox-style), symmetric sticks (PlayStation-style),
+  retro pad, shooter, racing with analog pedals, arcade stick (Vewlix),
+  leverless, keyboard & mouse with trackpad, and a full keyboard.
+- **Editor**: drag controls, resize and stretch them, rebind any button to a
+  gamepad button, key or mouse button, and add sticks, d-pads, triggers or
+  trackpads. Presets are copied before they are changed.
+- **Themes**: seven presets plus overrides for control style, button glyphs
+  (Xbox, PlayStation, Nintendo), accent, background, coloured face buttons and
+  opacity.
+- Multi-touch with slide-between-buttons, haptics, stick deadzone, pointer
+  speed, auto reconnect and an input monitor overlay.
+
+## Project layout
+
+```
+android/app/src/main/java/com/uwaiscontroller/hid   Bluetooth HID native module
+src/specs        TurboModule spec for the native module
+src/hid          HID report formats and encoders
+src/bluetooth    Transport (native and mock), permissions, connection state
+src/input        Touch routing, state resolution, report dispatch
+src/layouts      Layout model, presets and editing helpers
+src/controls     Control renderers
+src/themes       Theme presets, colour helpers, glyphs
+src/settings     Persisted user settings
+src/components   Shared UI pieces
+src/screens      App screens
+src/navigation   Navigation stack
+```
+
+The HID report descriptor in `HidDescriptor.kt` and the encoders in
+`src/hid/reports.ts` must stay in sync.
+
+## Checks
 
 ```sh
-bundle install
+npm test
+npx tsc --noEmit
+npm run lint
 ```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
