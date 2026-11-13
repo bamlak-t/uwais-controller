@@ -48,6 +48,7 @@ class HidDeviceManager(
   @Volatile private var registered = false
   @Volatile private var profileSupported = adapter != null
   private var proxyRequested = false
+  @Volatile private var registrationPending = false
   private val lastReports = HashMap<Int, ByteArray>()
 
   private val sdpSettings =
@@ -78,6 +79,7 @@ class HidDeviceManager(
       object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, isRegistered: Boolean) {
           registered = isRegistered
+          registrationPending = false
           if (!isRegistered) {
             host = null
             connectionState = BluetoothProfile.STATE_DISCONNECTED
@@ -220,12 +222,15 @@ class HidDeviceManager(
   }
 
   private fun registerApp() {
-    if (!hasConnectPermission()) return
-    hidDevice?.registerApp(sdpSettings, null, null, context.mainExecutor, hidCallback)
+    // The result arrives in onAppStatusChanged; asking twice makes the stack reject the second.
+    if (registrationPending || !hasConnectPermission()) return
+    registrationPending =
+        hidDevice?.registerApp(sdpSettings, null, null, context.mainExecutor, hidCallback) == true
   }
 
   private fun resetConnection() {
     registered = false
+    registrationPending = false
     host = null
     connectionState = BluetoothProfile.STATE_DISCONNECTED
     notifyStatus()
