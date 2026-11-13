@@ -37,6 +37,14 @@
     "react-test-renderer": "19.3.0",
     "typescript": "^6.0.3"
   },
+  "codegenConfig": {
+    "name": "UwaisControllerSpecs",
+    "type": "modules",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.uwaiscontroller.specs"
+    }
+  },
   "engines": {
     "node": ">= 22.11.0"
   }
