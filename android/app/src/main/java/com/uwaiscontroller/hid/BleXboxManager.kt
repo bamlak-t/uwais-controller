@@ -50,7 +50,10 @@ class BleXboxManager(
   @Volatile private var connectionState = BluetoothProfile.STATE_DISCONNECTED
   @Volatile private var registered = false
   @Volatile private var started = false
+  @Volatile private var advertising = false
+  @Volatile private var lastIncludeName = true
 
+  private val pendingServices = ArrayDeque<BluetoothGattService>()
   private var inputReportCharacteristic: BluetoothGattCharacteristic? = null
   private val clientNotificationsEnabled = ConcurrentHashMap<String, Boolean>()
   private var lastReport: ByteArray = BleXboxDescriptor.NEUTRAL_REPORT.copyOf()
@@ -59,11 +62,17 @@ class BleXboxManager(
   private val advertiseCallback =
       object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
+          advertising = false
           registered = true
           notifyStatus()
         }
 
         override fun onStartFailure(errorCode: Int) {
+          advertising = false
+          if (errorCode == ADVERTISE_FAILED_DATA_TOO_LARGE && lastIncludeName && started) {
+            startAdvertising(includeName = false)
+            return
+          }
           registered = false
           notifyStatus()
         }
@@ -71,6 +80,15 @@ class BleXboxManager(
 
   private val gattServerCallback =
       object : BluetoothGattServerCallback() {
+        override fun onServiceAdded(status: Int, service: BluetoothGattService) {
+          val next = synchronized(pendingServices) { pendingServices.removeFirstOrNull() }
+          if (next != null) {
+            gattServer?.addService(next)
+          } else if (started && !registered && !advertising) {
+            startAdvertising()
+          }
+        }
+
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
           if (newState == BluetoothProfile.STATE_CONNECTED) {
             host = device
@@ -251,21 +269,34 @@ class BleXboxManager(
     if (!bAdapter.isEnabled) {
       throw HidException("BLUETOOTH_OFF", "Bluetooth is turned off")
     }
+    if (started && (registered || advertising)) {
+      return
+    }
 
     started = true
-    setupGattServer()
     renameAdapterIfNeeded()
-    startAdvertising()
+    if (gattServer == null) {
+      setupGattServer()
+    } else if (synchronized(pendingServices) { pendingServices.isEmpty() }) {
+      startAdvertising()
+    }
   }
 
   override fun stop() {
     started = false
+    advertising = false
     stopAdvertising()
     restoreAdapterName()
+
+    synchronized(pendingServices) {
+      pendingServices.clear()
+    }
 
     if (hasConnectPermission()) {
       host?.let { gattServer?.cancelConnection(it) }
     }
+    gattServer?.close()
+    gattServer = null
 
     registered = false
     host = null
@@ -343,37 +374,20 @@ class BleXboxManager(
     val server = bManager.openGattServer(context, gattServerCallback)
         ?: throw HidException("UNSUPPORTED", "Failed to open BluetoothGattServer")
 
-    buildGattServices().forEach { service ->
-      server.addService(service)
-    }
-
     gattServer = server
+    val services = buildGattServices()
+    val first = synchronized(pendingServices) {
+      pendingServices.clear()
+      pendingServices.addAll(services)
+      pendingServices.removeFirstOrNull()
+    }
+    if (first != null) {
+      server.addService(first)
+    }
   }
 
   private fun buildGattServices(): List<BluetoothGattService> {
     val services = mutableListOf<BluetoothGattService>()
-
-    // 1. Generic Access Service (0x1800)
-    val gapService =
-        BluetoothGattService(
-            BleXboxDescriptor.UUID_SERVICE_GAP,
-            BluetoothGattService.SERVICE_TYPE_PRIMARY,
-        )
-    val nameChar =
-        BluetoothGattCharacteristic(
-            BleXboxDescriptor.UUID_CHAR_DEVICE_NAME,
-            BluetoothGattCharacteristic.PROPERTY_READ,
-            BluetoothGattCharacteristic.PERMISSION_READ,
-        )
-    val appearanceChar =
-        BluetoothGattCharacteristic(
-            BleXboxDescriptor.UUID_CHAR_APPEARANCE,
-            BluetoothGattCharacteristic.PROPERTY_READ,
-            BluetoothGattCharacteristic.PERMISSION_READ,
-        )
-    gapService.addCharacteristic(nameChar)
-    gapService.addCharacteristic(appearanceChar)
-    services.add(gapService)
 
     // 2. Device Information Service (0x180A)
     val disService =
@@ -528,10 +542,11 @@ class BleXboxManager(
     return services
   }
 
-  private fun startAdvertising() {
+  private fun startAdvertising(includeName: Boolean = true) {
     val bAdapter = requireAdapter()
     val leAdvertiser = bAdapter.bluetoothLeAdvertiser
         ?: throw HidException("UNSUPPORTED", "BLE advertising is not supported on this phone")
+    stopAdvertising()
     advertiser = leAdvertiser
 
     val settings =
@@ -550,15 +565,23 @@ class BleXboxManager(
             .addServiceUuid(ParcelUuid(BleXboxDescriptor.UUID_SERVICE_HIDS))
             .build()
 
-    // Scan response packet: Device name "Xbox Wireless Controller"
-    val scanResponse =
-        AdvertiseData.Builder()
-            .setIncludeDeviceName(true)
-            .build()
+    val adapterNameBytes = bAdapter.name?.toByteArray(Charsets.UTF_8)?.size ?: 99
+    val shouldIncludeName = includeName && adapterNameBytes <= 29
+    lastIncludeName = shouldIncludeName
+    advertising = true
 
     try {
-      leAdvertiser.startAdvertising(settings, advertiseData, scanResponse, advertiseCallback)
+      if (shouldIncludeName) {
+        val scanResponse =
+            AdvertiseData.Builder()
+                .setIncludeDeviceName(true)
+                .build()
+        leAdvertiser.startAdvertising(settings, advertiseData, scanResponse, advertiseCallback)
+      } else {
+        leAdvertiser.startAdvertising(settings, advertiseData, advertiseCallback)
+      }
     } catch (e: Exception) {
+      advertising = false
       throw HidException("ADVERTISE_FAILED", "Failed to start BLE advertising: ${e.message}")
     }
   }
