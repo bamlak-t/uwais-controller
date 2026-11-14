@@ -54,6 +54,7 @@ class BleXboxManager(
   @Volatile private var lastIncludeName = true
 
   private val pendingServices = ArrayDeque<BluetoothGattService>()
+  @Volatile private var pendingConnectDevice: BluetoothDevice? = null
   private var inputReportCharacteristic: BluetoothGattCharacteristic? = null
   private val clientNotificationsEnabled = ConcurrentHashMap<String, Boolean>()
   private val knownHidHosts = ConcurrentHashMap.newKeySet<String>()
@@ -85,8 +86,15 @@ class BleXboxManager(
           val next = synchronized(pendingServices) { pendingServices.removeFirstOrNull() }
           if (next != null) {
             gattServer?.addService(next)
-          } else if (started && !registered && !advertising) {
-            startAdvertising()
+          } else {
+            val connectTarget = pendingConnectDevice
+            pendingConnectDevice = null
+            if (connectTarget != null) {
+              gattServer?.connect(connectTarget, false)
+            }
+            if (started && !advertising) {
+              startAdvertising()
+            }
           }
         }
 
@@ -279,7 +287,10 @@ class BleXboxManager(
     if (!bAdapter.isEnabled) {
       throw HidException("BLUETOOTH_OFF", "Bluetooth is turned off")
     }
-    if (started && (registered || advertising)) {
+    if (started && registered && gattServer != null && advertiser != null) {
+      return
+    }
+    if (started && advertising) {
       return
     }
 
@@ -287,7 +298,7 @@ class BleXboxManager(
     renameAdapterIfNeeded()
     if (gattServer == null) {
       setupGattServer()
-    } else if (synchronized(pendingServices) { pendingServices.isEmpty() }) {
+    } else if (synchronized(pendingServices) { pendingServices.isEmpty() } && advertiser == null) {
       startAdvertising()
     }
   }
@@ -335,26 +346,39 @@ class BleXboxManager(
       throw HidException("INVALID_ADDRESS", "Invalid Bluetooth address: $address")
     }
     val device = bAdapter.getRemoteDevice(address)
-    val server = gattServer ?: throw HidException("NOT_REGISTERED", "The BLE controller is not ready yet")
-    if (!server.connect(device, false)) {
-      throw HidException("CONNECT_FAILED", "Could not start connecting to the host")
-    }
     connectionState = BluetoothProfile.STATE_CONNECTING
     host = device
     notifyStatus()
+
+    val server = gattServer
+    if (server == null) {
+      pendingConnectDevice = device
+      setupGattServer()
+      return
+    }
+    if (!server.connect(device, false)) {
+      connectionState = BluetoothProfile.STATE_DISCONNECTED
+      host = null
+      notifyStatus()
+      throw HidException("CONNECT_FAILED", "Could not start connecting to the host")
+    }
   }
 
   override fun disconnect() {
     requirePermissions()
     val device = host ?: return
+    pendingConnectDevice = null
     host = null
     connectionState = BluetoothProfile.STATE_DISCONNECTED
     clientNotificationsEnabled.remove(device.address)
-    gattServer?.cancelConnection(device)
-    notifyStatus()
-    if (started) {
-      startAdvertising()
+    stopAdvertising()
+    synchronized(pendingServices) {
+      pendingServices.clear()
     }
+    gattServer?.cancelConnection(device)
+    gattServer?.close()
+    gattServer = null
+    notifyStatus()
   }
 
   private fun markHidHostConnected(device: BluetoothDevice) {

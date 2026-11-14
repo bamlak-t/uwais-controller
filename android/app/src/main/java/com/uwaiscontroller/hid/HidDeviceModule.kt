@@ -84,6 +84,13 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
       launchForResult(REQUEST_ENABLE, Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), promise)
 
   override fun requestDiscoverable(durationSeconds: Double, promise: Promise) {
+    if (currentMode == MODE_XBOX_BLE) {
+      try {
+        bleXboxManager.start()
+      } catch (_: Exception) {
+        // Let the discoverable prompt proceed
+      }
+    }
     val intent =
         Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
             .putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, durationSeconds.toInt())
