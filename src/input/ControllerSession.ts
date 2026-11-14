@@ -1,4 +1,4 @@
-import { ReportSink } from '../bluetooth/types';
+import { ControllerMode, ReportSink } from '../bluetooth/types';
 import { MOUSE_BUTTON_BITS, MouseButton } from '../hid/mouse';
 import { Control } from '../layouts/types';
 import { Size } from './geometry';
@@ -13,6 +13,7 @@ const CLICK_DURATION_MS = 40;
 export interface SessionOptions {
   deadzone: number;
   mouseSensitivity: number;
+  controllerMode?: ControllerMode;
 }
 
 export interface SessionListeners {
@@ -47,7 +48,10 @@ export class ControllerSession {
     private readonly options: SessionOptions,
     private readonly listeners: SessionListeners,
   ) {
-    this.dispatcher = new ReportDispatcher(sink);
+    this.dispatcher = new ReportDispatcher(
+      sink,
+      options.controllerMode ?? 'classic',
+    );
     this.router = new TouchRouter(
       controls,
       screen,

@@ -1,4 +1,4 @@
-import { ReportSink } from '../bluetooth/types';
+import { ControllerMode, ReportSink } from '../bluetooth/types';
 import { NEUTRAL_GAMEPAD } from '../hid/gamepad';
 import { keyboardStateFromUsages } from '../hid/keyboard';
 import { MouseMotion } from '../hid/mouse';
@@ -7,6 +7,7 @@ import {
   encodeGamepadReport,
   encodeKeyboardReport,
   encodeMouseReport,
+  encodeXboxBleReport,
 } from '../hid/reports';
 import { ControllerState } from './types';
 
@@ -24,10 +25,28 @@ export class ReportDispatcher {
   private readonly lastSent = new Map<number, string>();
   private mouseButtons = 0;
 
-  constructor(private readonly sink: ReportSink) {}
+  constructor(
+    private readonly sink: ReportSink,
+    private mode: ControllerMode = 'classic',
+  ) {}
+
+  setMode(mode: ControllerMode): void {
+    if (this.mode !== mode) {
+      this.mode = mode;
+      this.lastSent.clear();
+    }
+  }
 
   /** Sends whichever reports differ from what the host last received. */
   update(state: ControllerState): void {
+    if (this.mode === 'xbox_ble') {
+      this.sendIfChanged(
+        ReportId.Gamepad,
+        encodeXboxBleReport(state.gamepad),
+      );
+      return;
+    }
+
     this.mouseButtons = state.mouse.buttons;
     this.sendIfChanged(ReportId.Gamepad, encodeGamepadReport(state.gamepad));
     this.sendIfChanged(
@@ -39,6 +58,9 @@ export class ReportDispatcher {
 
   /** Relative motion is an event, not state, so it is always sent. */
   moveMouse(motion: MouseMotion): void {
+    if (this.mode === 'xbox_ble') {
+      return;
+    }
     const data = encodeMouseReport({ buttons: this.mouseButtons }, motion);
     this.sink.sendReport(ReportId.Mouse, data);
   }

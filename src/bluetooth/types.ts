@@ -6,6 +6,8 @@ export type ConnectionState =
 
 export type HostKind = 'computer' | 'phone' | 'tv' | 'other';
 
+export type ControllerMode = 'classic' | 'xbox_ble';
+
 /** A device this phone is paired with and can act as a controller for. */
 export interface HostDevice {
   address: string;
@@ -42,6 +44,8 @@ export interface ReportSink {
  */
 export interface HidTransport extends ReportSink {
   getStatus(): Promise<HidStatus>;
+  /** Switches between Classic HID and BLE Xbox Wireless Controller emulation. */
+  setMode(mode: ControllerMode): Promise<void>;
   /** Registers the controller with the Bluetooth stack. Idempotent. */
   start(): Promise<void>;
   stop(): Promise<void>;

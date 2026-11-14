@@ -1,7 +1,8 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '../../components/AppButton';
 import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
-import { StepperRow, ToggleRow } from '../../components/SettingRow';
+import { SettingRow, StepperRow, ToggleRow } from '../../components/SettingRow';
 import { ScreenProps } from '../../navigation/types';
 import { useSettings } from '../../settings/SettingsProvider';
 import { useTheme } from '../../themes/ThemeProvider';
@@ -9,13 +10,14 @@ import { useTheme } from '../../themes/ThemeProvider';
 const PAIRING_STEPS = [
   'Tap "Pair new device" on the home screen to make this phone visible.',
   'On the computer, add a Bluetooth device and choose this phone.',
-  'Accept the pairing request on both sides. The computer now sees a gamepad, keyboard and mouse.',
+  'Accept the pairing request on both sides. The computer now sees your controller.',
   'Next time, just tap the computer under "Paired devices".',
 ];
 
 const TROUBLESHOOTING = [
-  'Paired before installing this app? Remove the phone from the computer and pair again so it learns about the controller.',
-  'Games that only accept Xbox controllers need Steam Input or a similar remapper, because the phone appears as a generic gamepad.',
+  'In Xbox (BLE) mode, Windows natively recognizes an Xbox Wireless Controller via XInput, giving full analog support and Player 1-4 multiplayer in all PC games without third-party software.',
+  'Classic mode provides a combo Gamepad + Keyboard + Mouse, best for custom desktop keybinds, media control, or non-XInput setups.',
+  'Paired before switching modes? Unpair/remove the phone in your computer Bluetooth settings and pair again so the OS binds the new profile.',
   'Game consoles only accept their own controllers and will not connect.',
 ];
 
@@ -29,6 +31,38 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
           style={styles.column}
           contentContainerStyle={styles.content}
         >
+          <Card title="Emulation Mode">
+            <SettingRow
+              label="Device Type"
+              description={
+                settings.controllerMode === 'xbox_ble'
+                  ? 'Xbox Series X|S (BLE) · Native XInput on Windows with zero mapping'
+                  : 'Classic HID · Gamepad + Keyboard + Mouse combo'
+              }
+            >
+              <View style={styles.modeButtons}>
+                <AppButton
+                  label="Classic"
+                  variant={
+                    settings.controllerMode === 'classic'
+                      ? 'primary'
+                      : 'secondary'
+                  }
+                  onPress={() => updateSettings({ controllerMode: 'classic' })}
+                />
+                <AppButton
+                  label="Xbox (BLE)"
+                  variant={
+                    settings.controllerMode === 'xbox_ble'
+                      ? 'primary'
+                      : 'secondary'
+                  }
+                  onPress={() => updateSettings({ controllerMode: 'xbox_ble' })}
+                />
+              </View>
+            </SettingRow>
+          </Card>
+
           <Card title="Feel">
             <ToggleRow
               label="Haptic feedback"
@@ -148,5 +182,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  modeButtons: {
+    flexDirection: 'row',
+    gap: 6,
   },
 });

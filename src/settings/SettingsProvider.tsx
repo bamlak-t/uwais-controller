@@ -5,9 +5,12 @@ import {
   useContext,
   useMemo,
 } from 'react';
+import { ControllerMode } from '../bluetooth/types';
 import { usePersistentState } from '../storage/usePersistentState';
 
 export interface Settings {
+  /** Controller emulation mode: Classic HID or Native BLE Xbox Series X|S. */
+  controllerMode: ControllerMode;
   /** Vibrate briefly when a control is pressed. */
   haptics: boolean;
   /** Radial stick deadzone, 0..1. */
@@ -24,6 +27,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  controllerMode: 'classic',
   haptics: true,
   stickDeadzone: 0.08,
   mouseSensitivity: 1,

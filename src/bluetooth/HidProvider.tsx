@@ -99,6 +99,7 @@ export function HidProvider({ children }: { children: ReactNode }) {
       if (!granted) {
         return;
       }
+      await transport.setMode(settings.controllerMode).catch(() => {});
       const current = await transport.getStatus();
       setStatus(current);
       if (!current.bluetoothEnabled) {
@@ -110,7 +111,7 @@ export function HidProvider({ children }: { children: ReactNode }) {
     } finally {
       preparing.current = false;
     }
-  }, [attempt, isDemo, transport]);
+  }, [attempt, isDemo, settings.controllerMode, transport]);
 
   // Follow the transport, and release it when switching between real and demo.
   useEffect(() => {
@@ -153,6 +154,17 @@ export function HidProvider({ children }: { children: ReactNode }) {
       updateSettings({ lastHostAddress: host.address });
     }
   }, [connection, host, updateSettings]);
+
+  useEffect(() => {
+    attempt(async () => {
+      await transport.setMode(settings.controllerMode);
+      const current = await transport.getStatus();
+      setStatus(current);
+      if (current.registered) {
+        setHosts(await transport.getPairedHosts());
+      }
+    });
+  }, [attempt, settings.controllerMode, transport]);
 
   useEffect(() => {
     const target = settings.lastHostAddress;

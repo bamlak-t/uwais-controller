@@ -43,6 +43,7 @@ export function createMockTransport(delayMs = 400): MockTransport {
   return {
     reports,
     getStatus: async () => status,
+    setMode: async () => {},
     start: async () => update({ registered: true }),
     stop: async () =>
       update({ registered: false, connection: 'disconnected', host: null }),
