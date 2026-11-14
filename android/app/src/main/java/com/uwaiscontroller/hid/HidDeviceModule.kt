@@ -98,17 +98,18 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
   override fun setMode(mode: String, promise: Promise) =
       settle(promise) {
         val targetMode = if (mode.equals(MODE_XBOX_BLE, ignoreCase = true)) MODE_XBOX_BLE else MODE_CLASSIC
-        if (targetMode == currentMode) return@settle
-
-        val wasRunning = activeManager.status.registered
-        if (wasRunning) {
-          activeManager.stop()
+        if (targetMode != currentMode) {
+          val wasRunning = activeManager.status.registered
+          if (wasRunning) {
+            activeManager.stop()
+          }
+          currentMode = targetMode
+          if (wasRunning) {
+            activeManager.start()
+          }
+          emitOnStatusChanged(activeManager.status.toMap())
         }
-        currentMode = targetMode
-        if (wasRunning) {
-          activeManager.start()
-        }
-        emitOnStatusChanged(activeManager.status.toMap())
+        null
       }
 
   private fun onManagerStatusChanged(mode: String, status: HidStatus) {
