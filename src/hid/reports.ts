@@ -1,4 +1,4 @@
-import { GamepadState } from './gamepad';
+import { GAMEPAD_BUTTON_BITS, GamepadState } from './gamepad';
 import { KeyboardState, MAX_KEYS } from './keyboard';
 import { MouseMotion, MouseState } from './mouse';
 
@@ -15,6 +15,8 @@ export const ReportId = {
 const AXIS_MAX = 32767;
 const TRIGGER_MAX = 255;
 const WHEEL_MAX = 127;
+const XBOX_AXIS_MAX = 65535;
+const XBOX_TRIGGER_MAX = 1023;
 
 /** [buttons lo, buttons hi, hat, lx, ly, rx, ry (int16 LE each), lt, rt] */
 export function encodeGamepadReport(state: GamepadState): number[] {
@@ -28,6 +30,51 @@ export function encodeGamepadReport(state: GamepadState): number[] {
     ...int16(axis(state.ry)),
     trigger(state.lt),
     trigger(state.rt),
+  ];
+}
+
+/**
+ * Encodes a 16-byte Xbox Series X|S input report for BLE HOGP.
+ *
+ * Wire layout (16 bytes):
+ * - Bytes 0..1: Left Stick X (uint16 LE: 0..65535, center = 32768)
+ * - Bytes 2..3: Left Stick Y (uint16 LE: 0..65535, center = 32768)
+ * - Bytes 4..5: Right Stick X (uint16 LE: 0..65535, center = 32768)
+ * - Bytes 6..7: Right Stick Y (uint16 LE: 0..65535, center = 32768)
+ * - Bytes 8..9: Left Trigger LT (uint16 LE: 0..1023, 10-bit value + 6 bits padding)
+ * - Bytes 10..11: Right Trigger RT (uint16 LE: 0..1023, 10-bit value + 6 bits padding)
+ * - Byte 12: D-pad / Hat switch:
+ *     0 = neutral/released
+ *     1 = N, 2 = NE, 3 = E, 4 = SE, 5 = S, 6 = SW, 7 = W, 8 = NW
+ * - Bytes 13..14: 16-bit button bitmask:
+ *     Bit 0: A
+ *     Bit 1: B
+ *     Bit 3: X
+ *     Bit 4: Y
+ *     Bit 6: LB
+ *     Bit 7: RB
+ *     Bit 10: View (Select)
+ *     Bit 11: Menu (Start)
+ *     Bit 12: Xbox Guide (Home)
+ *     Bit 13: L3 (ThumbL)
+ *     Bit 14: R3 (ThumbR)
+ * - Byte 15: Share / Record button (bit 0: 0x01)
+ */
+export function encodeXboxBleReport(state: GamepadState): number[] {
+  const xboxButtons = state.buttons & 0x7cdb;
+  const share = (state.buttons >> GAMEPAD_BUTTON_BITS.share) & 0x01;
+
+  return [
+    ...uint16LE(xboxAxis(state.lx)),
+    ...uint16LE(xboxAxis(state.ly)),
+    ...uint16LE(xboxAxis(state.rx)),
+    ...uint16LE(xboxAxis(state.ry)),
+    ...uint16LE(xboxTrigger(state.lt)),
+    ...uint16LE(xboxTrigger(state.rt)),
+    xboxHat(state.hat),
+    xboxButtons & 0xff,
+    (xboxButtons >> 8) & 0xff,
+    share,
   ];
 }
 
@@ -67,4 +114,23 @@ function int16(value: number): [number, number] {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function xboxAxis(value: number): number {
+  return Math.round(clamp((value + 1) / 2, 0, 1) * XBOX_AXIS_MAX);
+}
+
+function xboxTrigger(value: number): number {
+  return Math.round(clamp(value, 0, 1) * XBOX_TRIGGER_MAX);
+}
+
+function xboxHat(hat: number): number {
+  if (hat >= 0 && hat <= 7) {
+    return hat + 1;
+  }
+  return 0;
+}
+
+function uint16LE(value: number): [number, number] {
+  return [value & 0xff, (value >> 8) & 0xff];
 }

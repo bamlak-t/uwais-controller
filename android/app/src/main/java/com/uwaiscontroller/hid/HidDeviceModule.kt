@@ -11,10 +11,20 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.WritableMap
 import com.uwaiscontroller.specs.NativeHidDeviceSpec
 
-/** Exposes [HidDeviceManager] to JavaScript. The spec lives in src/specs/NativeHidDevice.ts. */
+/**
+ * Exposes [ControllerManager] (Classic Bluetooth HID or BLE Xbox Series X|S) to JavaScript.
+ * The spec lives in src/specs/NativeHidDevice.ts.
+ */
 class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSpec(reactContext) {
 
-  private val manager = HidDeviceManager(reactContext) { status -> emitOnStatusChanged(status.toMap()) }
+  private val classicManager = HidDeviceManager(reactContext) { status -> onManagerStatusChanged(MODE_CLASSIC, status) }
+  private val bleXboxManager = BleXboxManager(reactContext) { status -> onManagerStatusChanged(MODE_XBOX_BLE, status) }
+
+  @Volatile private var currentMode = MODE_CLASSIC
+
+  private val activeManager: ControllerManager
+    get() = if (currentMode == MODE_XBOX_BLE) bleXboxManager else classicManager
+
   private var pendingRequest: PendingRequest? = null
 
   private val activityListener =
@@ -40,20 +50,21 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
 
   override fun invalidate() {
     reactApplicationContext.removeActivityEventListener(activityListener)
-    manager.release()
+    classicManager.release()
+    bleXboxManager.release()
     super.invalidate()
   }
 
-  override fun getStatus(promise: Promise) = settle(promise) { manager.status.toMap() }
+  override fun getStatus(promise: Promise) = settle(promise) { activeManager.status.toMap() }
 
-  override fun start(promise: Promise) = settle(promise) { manager.start() }
+  override fun start(promise: Promise) = settle(promise) { activeManager.start() }
 
-  override fun stop(promise: Promise) = settle(promise) { manager.stop() }
+  override fun stop(promise: Promise) = settle(promise) { activeManager.stop() }
 
   override fun getPairedHosts(promise: Promise) =
       settle(promise) {
         Arguments.createArray().apply {
-          manager.pairedHosts().forEach { host ->
+          activeManager.pairedHosts().forEach { host ->
             pushMap(
                 Arguments.createMap().apply {
                   putString("address", host.address)
@@ -65,9 +76,9 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
       }
 
   override fun connect(address: String, promise: Promise) =
-      settle(promise) { manager.connect(address) }
+      settle(promise) { activeManager.connect(address) }
 
-  override fun disconnect(promise: Promise) = settle(promise) { manager.disconnect() }
+  override fun disconnect(promise: Promise) = settle(promise) { activeManager.disconnect() }
 
   override fun requestEnable(promise: Promise) =
       launchForResult(REQUEST_ENABLE, Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), promise)
@@ -81,7 +92,29 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
 
   override fun sendReport(reportId: Double, data: ReadableArray) {
     val bytes = ByteArray(data.size()) { index -> data.getInt(index).toByte() }
-    manager.sendReport(reportId.toInt(), bytes)
+    activeManager.sendReport(reportId.toInt(), bytes)
+  }
+
+  override fun setMode(mode: String, promise: Promise) =
+      settle(promise) {
+        val targetMode = if (mode.equals(MODE_XBOX_BLE, ignoreCase = true)) MODE_XBOX_BLE else MODE_CLASSIC
+        if (targetMode == currentMode) return@settle
+
+        val wasRunning = activeManager.status.registered
+        if (wasRunning) {
+          activeManager.stop()
+        }
+        currentMode = targetMode
+        if (wasRunning) {
+          activeManager.start()
+        }
+        emitOnStatusChanged(activeManager.status.toMap())
+      }
+
+  private fun onManagerStatusChanged(mode: String, status: HidStatus) {
+    if (mode == currentMode) {
+      emitOnStatusChanged(status.toMap())
+    }
   }
 
   private fun launchForResult(requestCode: Int, intent: Intent, promise: Promise) {
@@ -126,6 +159,8 @@ class HidDeviceModule(reactContext: ReactApplicationContext) : NativeHidDeviceSp
 
   companion object {
     const val NAME = "HidDevice"
+    const val MODE_CLASSIC = "classic"
+    const val MODE_XBOX_BLE = "xbox_ble"
     private const val REQUEST_ENABLE = 7401
     private const val REQUEST_DISCOVERABLE = 7402
   }

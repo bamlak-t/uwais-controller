@@ -29,7 +29,12 @@ export function useControllerSession({
   onState,
 }: Options) {
   const { transport } = useHid();
-  const { haptics, stickDeadzone, mouseSensitivity } = useSettings().settings;
+  const {
+    haptics,
+    stickDeadzone,
+    mouseSensitivity,
+    controllerMode,
+  } = useSettings().settings;
   const session = useRef<ControllerSession | null>(null);
   const surface = useRef<ComponentRef<typeof View>>(null);
   /** Window position of the surface; touches arrive in window coordinates. */
@@ -43,7 +48,7 @@ export function useControllerSession({
       controls,
       size,
       transport,
-      { deadzone: stickDeadzone, mouseSensitivity },
+      { deadzone: stickDeadzone, mouseSensitivity, controllerMode },
       {
         onActivity: activities.apply,
         onFeedback: haptics ? () => Vibration.vibrate(HAPTIC_MS) : undefined,
@@ -61,6 +66,7 @@ export function useControllerSession({
     transport,
     stickDeadzone,
     mouseSensitivity,
+    controllerMode,
     haptics,
     activities,
     onState,

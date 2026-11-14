@@ -21,6 +21,7 @@ export const GAMEPAD_BUTTON_BITS = {
   home: 12,
   l3: 13,
   r3: 14,
+  share: 15,
 } as const;
 
 export type GamepadBitButton = keyof typeof GAMEPAD_BUTTON_BITS;

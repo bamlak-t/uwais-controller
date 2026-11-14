@@ -31,6 +31,7 @@ export interface Spec extends TurboModule {
   requestEnable(): Promise<boolean>;
   requestDiscoverable(durationSeconds: number): Promise<boolean>;
   sendReport(reportId: number, data: Array<number>): void;
+  setMode(mode: string): Promise<void>;
 
   readonly onStatusChanged: CodegenTypes.EventEmitter<NativeHidStatus>;
 }

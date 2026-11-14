@@ -25,6 +25,7 @@ function toStatus(native: NativeHidStatus): HidStatus {
 function createNativeTransport(native: Spec): HidTransport {
   return {
     getStatus: async () => toStatus(await native.getStatus()),
+    setMode: mode => native.setMode(mode),
     start: () => native.start(),
     stop: () => native.stop(),
     getPairedHosts: async (): Promise<HostDevice[]> =>

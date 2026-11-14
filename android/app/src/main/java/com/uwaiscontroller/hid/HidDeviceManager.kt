@@ -38,7 +38,7 @@ class HidException(val code: String, message: String) : Exception(message)
 class HidDeviceManager(
     private val context: Context,
     private val onStatusChanged: (HidStatus) -> Unit,
-) {
+) : ControllerManager {
   private val adapter: BluetoothAdapter? =
       context.getSystemService(BluetoothManager::class.java)?.adapter
 
@@ -130,7 +130,7 @@ class HidDeviceManager(
     )
   }
 
-  val status: HidStatus
+  override val status: HidStatus
     get() {
       val device = host
       val canReadName = hasConnectPermission()
@@ -145,7 +145,7 @@ class HidDeviceManager(
     }
 
   /** Binds to the HID device profile and registers the app. Safe to call repeatedly. */
-  fun start() {
+  override fun start() {
     val adapter = requireAdapter()
     requireConnectPermission()
     if (!adapter.isEnabled) {
@@ -166,7 +166,7 @@ class HidDeviceManager(
     }
   }
 
-  fun stop() {
+  override fun stop() {
     val proxy = hidDevice ?: return
     if (hasConnectPermission()) {
       host?.let { proxy.disconnect(it) }
@@ -175,20 +175,20 @@ class HidDeviceManager(
   }
 
   /** Releases every system resource. The manager cannot be used afterwards. */
-  fun release() {
+  override fun release() {
     context.unregisterReceiver(adapterStateReceiver)
     stop()
     hidDevice?.let { adapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, it) }
     hidDevice = null
   }
 
-  fun pairedHosts(): List<HidHost> {
+  override fun pairedHosts(): List<HidHost> {
     val adapter = requireAdapter()
     requireConnectPermission()
     return adapter.bondedDevices.map { HidHost(it.address, it.name ?: it.address, deviceKind(it)) }
   }
 
-  fun connect(address: String) {
+  override fun connect(address: String) {
     val adapter = requireAdapter()
     requireConnectPermission()
     val proxy = hidDevice
@@ -203,14 +203,14 @@ class HidDeviceManager(
     }
   }
 
-  fun disconnect() {
+  override fun disconnect() {
     requireConnectPermission()
     val device = host ?: return
     hidDevice?.disconnect(device)
   }
 
   /** Sends an input report to the connected host. Silently dropped while disconnected. */
-  fun sendReport(reportId: Int, data: ByteArray) {
+  override fun sendReport(reportId: Int, data: ByteArray) {
     synchronized(lastReports) { lastReports[reportId] = data }
     if (connectionState != BluetoothProfile.STATE_CONNECTED) return
     val device = host ?: return
