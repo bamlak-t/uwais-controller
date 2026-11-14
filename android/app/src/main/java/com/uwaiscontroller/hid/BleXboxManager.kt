@@ -56,6 +56,7 @@ class BleXboxManager(
   private val pendingServices = ArrayDeque<BluetoothGattService>()
   private var inputReportCharacteristic: BluetoothGattCharacteristic? = null
   private val clientNotificationsEnabled = ConcurrentHashMap<String, Boolean>()
+  private val knownHidHosts = ConcurrentHashMap.newKeySet<String>()
   private var lastReport: ByteArray = BleXboxDescriptor.NEUTRAL_REPORT.copyOf()
   private var originalAdapterName: String? = null
 
@@ -91,9 +92,9 @@ class BleXboxManager(
 
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
           if (newState == BluetoothProfile.STATE_CONNECTED) {
-            host = device
-            connectionState = BluetoothProfile.STATE_CONNECTED
-            notifyStatus()
+            if (knownHidHosts.contains(device.address)) {
+              markHidHostConnected(device)
+            }
           } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
             if (host?.address == device.address) {
               host = null
@@ -114,6 +115,12 @@ class BleXboxManager(
             offset: Int,
             characteristic: BluetoothGattCharacteristic,
         ) {
+          if (characteristic.uuid == BleXboxDescriptor.UUID_CHAR_REPORT_MAP ||
+              characteristic.uuid == BleXboxDescriptor.UUID_CHAR_HID_INFO ||
+              characteristic.uuid == BleXboxDescriptor.UUID_CHAR_PROTOCOL_MODE ||
+              characteristic.uuid == BleXboxDescriptor.UUID_CHAR_REPORT) {
+            markHidHostConnected(device)
+          }
           val value =
               when (characteristic.uuid) {
                 BleXboxDescriptor.UUID_CHAR_DEVICE_NAME ->
@@ -216,6 +223,9 @@ class BleXboxManager(
           if (descriptor.uuid == BleXboxDescriptor.UUID_DESC_CCCD) {
             val enabled = value.contentEquals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
             clientNotificationsEnabled[device.address] = enabled
+            if (enabled) {
+              markHidHostConnected(device)
+            }
           }
           if (responseNeeded) {
             gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
@@ -337,7 +347,23 @@ class BleXboxManager(
   override fun disconnect() {
     requirePermissions()
     val device = host ?: return
+    host = null
+    connectionState = BluetoothProfile.STATE_DISCONNECTED
+    clientNotificationsEnabled.remove(device.address)
     gattServer?.cancelConnection(device)
+    notifyStatus()
+    if (started) {
+      startAdvertising()
+    }
+  }
+
+  private fun markHidHostConnected(device: BluetoothDevice) {
+    knownHidHosts.add(device.address)
+    if (host?.address != device.address || connectionState != BluetoothProfile.STATE_CONNECTED) {
+      host = device
+      connectionState = BluetoothProfile.STATE_CONNECTED
+      notifyStatus()
+    }
   }
 
   override fun sendReport(reportId: Int, data: ByteArray) {
